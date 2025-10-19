@@ -1,0 +1,30 @@
+.DS_Store
+build/
+*.o
+*.so
+src/sdl2/sdl_interface
+config/
+rms/
+/out
+/screenshots
+/freej2me_system
+/.idea
+/*.iml
+
+# Build artifacts  
+src/libretro/shell_fake
+src/libretro/*.o
+src/libretro/*.so
+src/libretro/*.dylib
+src/libretro/*.dll
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Docker
+.docker/
+dist/
+*.dll
+*.dylib

@@ -1,0 +1,26 @@
+services:
+  # Main service for building
+  shell-fake-builder:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: shell-fake-builder
+    volumes:
+      # Mount source code
+      - .:/workspace
+    working_dir: /workspace
+    # Keep container running for interactive builds
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # Service for automated builds
+  shell-fake-build:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: shell-fake-build
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    profiles: ["build"]  # Only start when explicitly requested
