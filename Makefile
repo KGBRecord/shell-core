@@ -1,9 +1,9 @@
-# Shell Fake Core Makefile
+# Shell Core Makefile
 # LibRetro core for executing shell scripts
 
 # Variables
 DOCKER_COMPOSE = docker-compose
-DOCKER_BUILD_SERVICE = shell-fake-builder
+DOCKER_BUILD_SERVICE = shell-core-builder
 
 # Platform detection
 UNAME_S := $(shell uname -s)
@@ -19,7 +19,7 @@ else
 endif
 
 # Core info
-CORE_NAME = shell_fake_libretro
+CORE_NAME = shell_core_libretro
 CORE_FILE = $(CORE_NAME).$(CORE_EXT)
 
 # Directories
@@ -36,7 +36,7 @@ INSTALL_DIR = ~/.config/retroarch/cores
 # Help target
 .PHONY: help
 help:
-	@echo "Shell Fake Core Build System"
+	@echo "Shell Core Build System"
 	@echo "============================="
 	@echo ""
 	@echo "Available targets:"
@@ -49,6 +49,7 @@ help:
 	@echo "  package        - Create distribution tar.gz package"
 	@echo "  package-files  - Create package files only"
 	@echo "  install        - Install core to RetroArch"
+	@echo "  setup-roms     - Create Shell-Scripts ROM collection"
 	@echo "  clean          - Clean build artifacts"
 	@echo "  status         - Show build status"
 	@echo "  test           - Run basic tests"
@@ -84,7 +85,7 @@ build-all all: package-files
 .PHONY: build-so
 build-so: setup
 	@echo "Building libretro shared library (.so)..."
-	@docker-compose run --rm shell-fake-builder sh -c "cd $(SRC_DIR) && make clean && make platform=unix"
+	@$(DOCKER_COMPOSE) run --rm $(DOCKER_BUILD_SERVICE) sh -c "cd $(SRC_DIR) && make clean && make platform=unix"
 	@echo "Libretro core (.so) built successfully!"
 	@echo "Output files:"
 	@ls -la $(SRC_DIR)/*.so 2>/dev/null || echo "No .so files found in $(SRC_DIR)"
@@ -136,29 +137,37 @@ package: build-all
 	@echo "Creating distribution package..."
 	@mkdir -p dist
 	@echo "Collecting files for package..."
-	@mkdir -p dist/shell-fake-core
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.so" ]; then cp $(SRC_DIR)/shell_fake_libretro.so dist/shell-fake-core/; fi
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.dylib" ]; then cp $(SRC_DIR)/shell_fake_libretro.dylib dist/shell-fake-core/; fi
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.dll" ]; then cp $(SRC_DIR)/shell_fake_libretro.dll dist/shell-fake-core/; fi
-	@cp $(PACKAGE_DIR)/shell_fake_libretro.info dist/shell-fake-core/
-	@cp $(PACKAGE_DIR)/retroarch.cfg dist/shell-fake-core/
-	@cp -r $(PACKAGE_DIR)/examples dist/shell-fake-core/
-	@cp README.md dist/shell-fake-core/
-	@cp LICENSE dist/shell-fake-core/
-	@cd dist && tar -czf shell-fake-core-$(shell date +%Y%m%d).tar.gz shell-fake-core/
-	@rm -rf dist/shell-fake-core
-	@echo "Package created: dist/shell-fake-core-$(shell date +%Y%m%d).tar.gz"
+	@mkdir -p dist/shell-core
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.so" ]; then cp $(SRC_DIR)/shell_core_libretro.so dist/shell-core/; fi
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.dylib" ]; then cp $(SRC_DIR)/shell_core_libretro.dylib dist/shell-core/; fi
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.dll" ]; then cp $(SRC_DIR)/shell_core_libretro.dll dist/shell-core/; fi
+	@cp $(PACKAGE_DIR)/shell_core_libretro.info dist/shell-core/
+	@cp $(PACKAGE_DIR)/retroarch.cfg dist/shell-core/
+	@cp -r $(PACKAGE_DIR)/examples dist/shell-core/
+	@cp README.md dist/shell-core/
+	@cp LICENSE dist/shell-core/
+	@cd dist && tar -czf shell-core-$(shell date +%Y%m%d).tar.gz shell-core/
+	@rm -rf dist/shell-core
+	@echo "Package created: dist/shell-core-$(shell date +%Y%m%d).tar.gz"
 
 # Install core
 .PHONY: install
 install: build-so
 	@echo "Installing core to $(INSTALL_DIR)..."
 	@mkdir -p $(INSTALL_DIR)
-	@cp $(SRC_DIR)/shell_fake_libretro.so $(INSTALL_DIR)/ 2>/dev/null || \
-	 cp $(SRC_DIR)/shell_fake_libretro.dylib $(INSTALL_DIR)/ 2>/dev/null || \
-	 cp $(SRC_DIR)/shell_fake_libretro.dll $(INSTALL_DIR)/ 2>/dev/null
+	@cp $(SRC_DIR)/shell_core_libretro.so $(INSTALL_DIR)/ 2>/dev/null || \
+	 cp $(SRC_DIR)/shell_core_libretro.dylib $(INSTALL_DIR)/ 2>/dev/null || \
+	 cp $(SRC_DIR)/shell_core_libretro.dll $(INSTALL_DIR)/ 2>/dev/null
 	@echo "Core installed successfully!"
 	@echo "You can now load it in RetroArch"
+
+# Setup ROM collection
+.PHONY: setup-roms
+setup-roms:
+	@echo "Setting up Shell-Scripts ROM collection..."
+	@chmod +x scripts/setup_rom_collection.sh
+	@./scripts/setup_rom_collection.sh
+	@echo "ROM collection setup completed."
 
 # Clean build files
 .PHONY: clean
@@ -172,21 +181,21 @@ clean:
 .PHONY: test
 test: build-so
 	@echo "Testing core build..."
-	@test -f $(SRC_DIR)/shell_fake_libretro.so -o -f $(SRC_DIR)/shell_fake_libretro.dylib -o -f $(SRC_DIR)/shell_fake_libretro.dll || (echo "ERROR: Core file not found!" && exit 1)
+	@test -f $(SRC_DIR)/shell_core_libretro.so -o -f $(SRC_DIR)/shell_core_libretro.dylib -o -f $(SRC_DIR)/shell_core_libretro.dll || (echo "ERROR: Core file not found!" && exit 1)
 	@echo "Build test passed!"
 
 # Docker build
 .PHONY: docker-build
 docker-build:
 	@echo "Building with Docker..."
-	@docker-compose build
-	@docker-compose run --rm shell-fake-builder make
+	@$(DOCKER_COMPOSE) build
+	@$(DOCKER_COMPOSE) run --rm $(DOCKER_BUILD_SERVICE) make
 
 # Docker shell
 .PHONY: docker-shell
 docker-shell:
 	@echo "Starting Docker shell..."
-	@docker-compose run --rm shell-fake-builder bash
+	@$(DOCKER_COMPOSE) run --rm $(DOCKER_BUILD_SERVICE) bash
 
 # Show status
 .PHONY: status
@@ -195,20 +204,20 @@ status:
 	@echo "============="
 	@echo ""
 	@echo "Core files:"
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.so" ]; then \
-		echo "  ✓ shell_fake_libretro.so ($$(stat -f%z $(SRC_DIR)/shell_fake_libretro.so 2>/dev/null || stat -c%s $(SRC_DIR)/shell_fake_libretro.so 2>/dev/null || echo 'unknown') bytes)"; \
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.so" ]; then \
+		echo "  ✓ shell_core_libretro.so ($$(stat -f%z $(SRC_DIR)/shell_core_libretro.so 2>/dev/null || stat -c%s $(SRC_DIR)/shell_core_libretro.so 2>/dev/null || echo 'unknown') bytes)"; \
 	else \
-		echo "  ✗ shell_fake_libretro.so"; \
+		echo "  ✗ shell_core_libretro.so"; \
 	fi
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.dylib" ]; then \
-		echo "  ✓ shell_fake_libretro.dylib ($$(stat -f%z $(SRC_DIR)/shell_fake_libretro.dylib 2>/dev/null || stat -c%s $(SRC_DIR)/shell_fake_libretro.dylib 2>/dev/null || echo 'unknown') bytes)"; \
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.dylib" ]; then \
+		echo "  ✓ shell_core_libretro.dylib ($$(stat -f%z $(SRC_DIR)/shell_core_libretro.dylib 2>/dev/null || stat -c%s $(SRC_DIR)/shell_core_libretro.dylib 2>/dev/null || echo 'unknown') bytes)"; \
 	else \
-		echo "  ✗ shell_fake_libretro.dylib"; \
+		echo "  ✗ shell_core_libretro.dylib"; \
 	fi
-	@if [ -f "$(SRC_DIR)/shell_fake_libretro.dll" ]; then \
-		echo "  ✓ shell_fake_libretro.dll ($$(stat -f%z $(SRC_DIR)/shell_fake_libretro.dll 2>/dev/null || stat -c%s $(SRC_DIR)/shell_fake_libretro.dll 2>/dev/null || echo 'unknown') bytes)"; \
+	@if [ -f "$(SRC_DIR)/shell_core_libretro.dll" ]; then \
+		echo "  ✓ shell_core_libretro.dll ($$(stat -f%z $(SRC_DIR)/shell_core_libretro.dll 2>/dev/null || stat -c%s $(SRC_DIR)/shell_core_libretro.dll 2>/dev/null || echo 'unknown') bytes)"; \
 	else \
-		echo "  ✗ shell_fake_libretro.dll"; \
+		echo "  ✗ shell_core_libretro.dll"; \
 	fi
 	@echo ""
 	@echo "Package files:"
@@ -224,14 +233,14 @@ status:
 	fi
 	@echo ""
 	@echo "Distribution package:"
-	@if [ -f "dist/shell-fake-core-$(shell date +%Y%m%d).tar.gz" ]; then \
-		echo "  ✓ dist/shell-fake-core-$(shell date +%Y%m%d).tar.gz"; \
+	@if [ -f "dist/shell-core-$(shell date +%Y%m%d).tar.gz" ]; then \
+		echo "  ✓ dist/shell-core-$(shell date +%Y%m%d).tar.gz"; \
 	else \
 		echo "  ✗ Distribution package not created"; \
 	fi
 	@echo ""
 	@echo "Installation:"
-	@if [ -f "$(INSTALL_DIR)/shell_fake_libretro.so" ] || [ -f "$(INSTALL_DIR)/shell_fake_libretro.dylib" ] || [ -f "$(INSTALL_DIR)/shell_fake_libretro.dll" ]; then \
+	@if [ -f "$(INSTALL_DIR)/shell_core_libretro.so" ] || [ -f "$(INSTALL_DIR)/shell_core_libretro.dylib" ] || [ -f "$(INSTALL_DIR)/shell_core_libretro.dll" ]; then \
 		echo "  ✓ Installed in RetroArch"; \
 	else \
 		echo "  ✗ Not installed"; \
@@ -242,6 +251,6 @@ status:
 release: clean all
 	@echo "Creating release package..."
 	@mkdir -p releases
-	@tar -czf releases/shell-fake-core-$(shell date +%Y%m%d)-$(PLATFORM).tar.gz \
+	@tar -czf releases/shell-core-$(shell date +%Y%m%d)-$(PLATFORM).tar.gz \
 		-C $(BUILD_DIR) .
-	@echo "Release package created: releases/shell-fake-core-$(shell date +%Y%m%d)-$(PLATFORM).tar.gz"
+	@echo "Release package created: releases/shell-core-$(shell date +%Y%m%d)-$(PLATFORM).tar.gz"

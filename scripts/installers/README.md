@@ -1,6 +1,6 @@
-# Shell Installers for Shell Fake Core
+# Shell Installers for Shell Core
 
-This directory contains installer scripts for various shells that can be used with Shell Fake Core.
+This directory contains installer scripts for various shells that can be used with Shell Core.
 
 ## Available Installers
 
@@ -13,6 +13,7 @@ This directory contains installer scripts for various shells that can be used wi
 ### Alternative Installation Methods
 - `install_from_source.sh` - Compile shells from source code
 - `install_static_shells.sh` - Download static binaries for minimal systems
+- `install_from_scratch.sh` - Bootstrap installer for ultra-minimal/no-package-manager systems
 - `setup_minimal_system.sh` - Setup compatibility layer for containers/embedded
 
 ### Master Tools
@@ -112,12 +113,12 @@ chmod +x install_shells.sh
 | **zsh** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | Interactive use, power users |
 | **fish** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | Modern features, beginner-friendly |
 
-## Configuration in Shell Fake Core
+## Configuration in Shell Core
 
-After installing shells, configure Shell Fake Core in RetroArch:
+After installing shells, configure Shell Core in RetroArch:
 
 1. Open RetroArch
-2. Load Shell Fake Core
+2. Load Shell Core
 3. Go to **Quick Menu > Core Options**
 4. Set **Shell Interpreter** to your preferred shell:
    - `bash` - GNU Bash
@@ -128,9 +129,9 @@ After installing shells, configure Shell Fake Core in RetroArch:
 
 ## Using Installer Scripts as ROMs
 
-### 🎮 Load Installers in Shell Fake Core
+### 🎮 Load Installers in Shell Core
 
-The installer scripts can be loaded directly as "ROMs" in RetroArch with Shell Fake Core:
+The installer scripts can be loaded directly as "ROMs" in RetroArch with Shell Core:
 
 1. **Copy installer scripts to your ROMs directory:**
    ```bash
@@ -142,10 +143,10 @@ The installer scripts can be loaded directly as "ROMs" in RetroArch with Shell F
    - Open RetroArch
    - Load Content → Browse to Shell-Scripts folder
    - Select any installer script (e.g., `install_shells.sh`)
-   - Choose Shell Fake Core
+   - Choose Shell Core
 
 3. **Interactive Installation:**
-   - The installer will run in the Shell Fake Core interface
+   - The installer will run in the Shell Core interface
    - Use controller to navigate menus (if supported)
    - Follow on-screen prompts for shell installation
 

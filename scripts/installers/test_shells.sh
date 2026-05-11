@@ -74,7 +74,7 @@ echo "    SHELL FAKE CORE COMPATIBILITY"
 echo "========================================"
 echo ""
 
-echo "💡 Recommendations for Shell Fake Core:"
+echo "💡 Recommendations for Shell Core:"
 echo ""
 
 # Check for optimal shells
@@ -99,7 +99,7 @@ if command -v fish >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "🎮 To use with Shell Fake Core:"
+echo "🎮 To use with Shell Core:"
 echo "   1. Load any .sh script as a ROM in RetroArch"
 echo "   2. Set preferred shell in Core Options"
 echo "   3. Enjoy shell scripting as gaming!"

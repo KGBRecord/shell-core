@@ -1,20 +1,20 @@
 /*
-    Shell Fake Core - LibRetro core for executing shell scripts
+    Shell Core - LibRetro core for executing shell scripts
     
-    This file is part of Shell Fake Core.
+    This file is part of Shell Core.
 
-    Shell Fake Core is free software: you can redistribute it and/or modify
+    Shell Core is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    Shell Fake Core is distributed in the hope that it will be useful,
+    Shell Core is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with Shell Fake Core.  If not, see <http://www.gnu.org/licenses/>
+    along with Shell Core.  If not, see <http://www.gnu.org/licenses/>
 */
 
 #include <stdlib.h>
@@ -34,7 +34,7 @@
 #include <process.h>
 #endif
 
-#include "shell_fake_libretro.h"
+#include "shell_core_libretro.h"
 
 /* Global callbacks */
 retro_environment_t environ_cb;
@@ -49,8 +49,18 @@ core_state_t core_state;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 
+static void safe_copy(char *dst, size_t dst_size, const char *src)
+{
+    if (!dst || dst_size == 0) return;
+    if (!src) {
+        dst[0] = '\0';
+        return;
+    }
+    snprintf(dst, dst_size, "%s", src);
+}
+
 /* Core options */
-static struct retro_core_option_v2_category shell_fake_categories[] = {
+static struct retro_core_option_v2_category shell_core_categories[] = {
     {
         "shell",
         "Shell Settings",
@@ -64,9 +74,9 @@ static struct retro_core_option_v2_category shell_fake_categories[] = {
     { NULL, NULL, NULL }
 };
 
-static struct retro_core_option_v2_definition shell_fake_options[] = {
+static struct retro_core_option_v2_definition shell_core_options[] = {
     {
-        "shell_fake_shell",
+        "shell_core_shell",
         "Shell Interpreter",
         "Shell interpreter to use for script execution",
         "Choose the shell that will execute your scripts. bash is recommended for compatibility.",
@@ -83,7 +93,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "bash"
     },
     {
-        "shell_fake_timeout",
+        "shell_core_timeout",
         "Script Timeout",
         "Maximum time (in seconds) to run a script",
         "Set timeout for script execution. 0 means no timeout (infinite).",
@@ -102,7 +112,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "60"
     },
     {
-        "shell_fake_working_dir",
+        "shell_core_working_dir",
         "Working Directory",
         "Working directory for script execution",
         "Choose where scripts should be executed from.",
@@ -118,7 +128,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "script_dir"
     },
     {
-        "shell_fake_capture_output",
+        "shell_core_capture_output",
         "Capture Output",
         "Capture and display script output",
         "When enabled, script output will be captured and displayed on screen.",
@@ -132,7 +142,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "enabled"
     },
     {
-        "shell_fake_interactive",
+        "shell_core_interactive",
         "Interactive Mode",
         "Allow interactive input for scripts",
         "Enable if your scripts require user input.",
@@ -146,7 +156,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "disabled"
     },
     {
-        "shell_fake_auto_restart",
+        "shell_core_auto_restart",
         "Auto Restart",
         "Automatically restart finished scripts",
         "When enabled, scripts will restart automatically after finishing.",
@@ -160,7 +170,7 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
         "disabled"
     },
     {
-        "shell_fake_font_size", 
+        "shell_core_font_size", 
         "Font Size",
         "Font size for text output",
         "Adjust the size of text displayed on screen.",
@@ -177,9 +187,9 @@ static struct retro_core_option_v2_definition shell_fake_options[] = {
     { NULL, NULL, NULL, NULL, NULL, NULL, { { NULL, NULL } }, NULL }
 };
 
-static struct retro_core_options_v2 shell_fake_core_options = {
-    shell_fake_categories,
-    shell_fake_options
+static struct retro_core_options_v2 shell_core_options_v2 = {
+    shell_core_categories,
+    shell_core_options
 };
 
 /* Input descriptors */
@@ -219,6 +229,10 @@ static const uint8_t font_8x8[128][8] = {
 };
 
 /* Fallback logging function */
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
 static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
     (void)level;
@@ -229,15 +243,24 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 }
 
 /* Logging function */
-void shell_fake_log(enum retro_log_level level, const char *fmt, ...)
+void shell_core_log(enum retro_log_level level, const char *fmt, ...)
 {
     va_list va;
+    char message[2048];
+
     va_start(va, fmt);
-    if (log_cb)
-        log_cb(level, "[Shell Fake Core] ");
-    vfprintf(stderr, fmt, va);
+    vsnprintf(message, sizeof(message), fmt, va);
     va_end(va);
+
+    if (log_cb) {
+        log_cb(level, "[Shell Core] %s", message);
+    } else {
+        fprintf(stderr, "[Shell Core] %s", message);
+    }
 }
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Initialize core state */
 static void init_core_state(void)
@@ -245,8 +268,8 @@ static void init_core_state(void)
     memset(&core_state, 0, sizeof(core_state_t));
     
     /* Set default configuration */
-    strcpy(core_state.config.shell_path, "/bin/bash");
-    strcpy(core_state.config.working_dir, ".");
+    safe_copy(core_state.config.shell_path, sizeof(core_state.config.shell_path), "/bin/bash");
+    safe_copy(core_state.config.working_dir, sizeof(core_state.config.working_dir), ".");
     core_state.config.timeout_seconds = 60;
     core_state.config.capture_output = true;
     core_state.config.interactive_mode = false;
@@ -257,24 +280,24 @@ static void init_core_state(void)
     core_state.exit_code = 0;
     
     /* Allocate video buffer */
-    core_state.video_buffer = calloc(SHELL_FAKE_VIDEO_WIDTH * SHELL_FAKE_VIDEO_HEIGHT, sizeof(uint32_t));
+    core_state.video_buffer = calloc(SHELL_CORE_VIDEO_WIDTH * SHELL_CORE_VIDEO_HEIGHT, sizeof(uint32_t));
     if (!core_state.video_buffer) {
-        shell_fake_log(RETRO_LOG_ERROR, "Failed to allocate video buffer\n");
+        shell_core_log(RETRO_LOG_ERROR, "Failed to allocate video buffer\n");
     }
     
     /* Allocate audio buffer */
-    core_state.audio_buffer = calloc(SHELL_FAKE_AUDIO_SAMPLE_RATE / SHELL_FAKE_VIDEO_FPS * 2, sizeof(int16_t));
+    core_state.audio_buffer = calloc(SHELL_CORE_AUDIO_SAMPLE_RATE / SHELL_CORE_VIDEO_FPS * 2, sizeof(int16_t));
     if (!core_state.audio_buffer) {
-        shell_fake_log(RETRO_LOG_ERROR, "Failed to allocate audio buffer\n");
+        shell_core_log(RETRO_LOG_ERROR, "Failed to allocate audio buffer\n");
     }
 }
 
 /* Get shell path based on configuration */
-char* shell_fake_get_shell_path(void)
+const char* shell_core_get_shell_path(void)
 {
     struct retro_variable var = {0};
     
-    var.key = "shell_fake_shell";
+    var.key = "shell_core_shell";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         if (strcmp(var.value, "bash") == 0) {
             return "/bin/bash";
@@ -293,21 +316,21 @@ char* shell_fake_get_shell_path(void)
 }
 
 /* Update configuration from core options */
-void shell_fake_update_config(void)
+void shell_core_update_config(void)
 {
     struct retro_variable var = {0};
     
     /* Update shell path */
-    strcpy(core_state.config.shell_path, shell_fake_get_shell_path());
+    safe_copy(core_state.config.shell_path, sizeof(core_state.config.shell_path), shell_core_get_shell_path());
     
     /* Update timeout */
-    var.key = "shell_fake_timeout";
+    var.key = "shell_core_timeout";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         core_state.config.timeout_seconds = atoi(var.value);
     }
     
     /* Update working directory */
-    var.key = "shell_fake_working_dir";
+    var.key = "shell_core_working_dir";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         if (strcmp(var.value, "script_dir") == 0) {
             /* Extract directory from script path */
@@ -318,51 +341,52 @@ void shell_fake_update_config(void)
                 core_state.config.working_dir[last_slash - core_state.config.script_path] = '\0';
             }
         } else if (strcmp(var.value, "home") == 0) {
-            strcpy(core_state.config.working_dir, getenv("HOME") ? getenv("HOME") : "/tmp");
+            safe_copy(core_state.config.working_dir, sizeof(core_state.config.working_dir),
+                      getenv("HOME") ? getenv("HOME") : "/tmp");
         } else if (strcmp(var.value, "tmp") == 0) {
-            strcpy(core_state.config.working_dir, "/tmp");
+            safe_copy(core_state.config.working_dir, sizeof(core_state.config.working_dir), "/tmp");
         } else {
-            strcpy(core_state.config.working_dir, ".");
+            safe_copy(core_state.config.working_dir, sizeof(core_state.config.working_dir), ".");
         }
     }
     
     /* Update capture output */
-    var.key = "shell_fake_capture_output";
+    var.key = "shell_core_capture_output";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         core_state.config.capture_output = (strcmp(var.value, "enabled") == 0);
     }
     
     /* Update interactive mode */
-    var.key = "shell_fake_interactive";
+    var.key = "shell_core_interactive";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         core_state.config.interactive_mode = (strcmp(var.value, "enabled") == 0);
     }
     
     /* Update auto restart */
-    var.key = "shell_fake_auto_restart";
+    var.key = "shell_core_auto_restart";
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
         core_state.config.auto_restart = (strcmp(var.value, "enabled") == 0);
     }
 }
 
 /* Clear screen with specified color */
-void shell_fake_clear_screen(uint32_t color)
+void shell_core_clear_screen(uint32_t color)
 {
     if (!core_state.video_buffer) return;
     
-    for (int i = 0; i < SHELL_FAKE_VIDEO_WIDTH * SHELL_FAKE_VIDEO_HEIGHT; i++) {
+    for (int i = 0; i < SHELL_CORE_VIDEO_WIDTH * SHELL_CORE_VIDEO_HEIGHT; i++) {
         core_state.video_buffer[i] = color;
     }
 }
 
 /* Render text at specified position */
-void shell_fake_render_text(const char *text, int x, int y, uint32_t color)
+void shell_core_render_text(const char *text, int x, int y, uint32_t color)
 {
     if (!core_state.video_buffer || !text) return;
     
-    int len = strlen(text);
-    for (int i = 0; i < len; i++) {
-        unsigned char c = text[i];
+    size_t len = strlen(text);
+    for (size_t i = 0; i < len; i++) {
+        unsigned char c = (unsigned char)text[i];
         if (c >= 128) c = '?'; /* Handle non-ASCII */
         
         /* Render 8x8 character */
@@ -370,11 +394,11 @@ void shell_fake_render_text(const char *text, int x, int y, uint32_t color)
             uint8_t line = font_8x8[c][row];
             for (int col = 0; col < 8; col++) {
                 if (line & (0x80 >> col)) {
-                    int px = x + i * 8 + col;
+                    int px = x + (int)(i * 8) + col;
                     int py = y + row;
-                    if (px >= 0 && px < SHELL_FAKE_VIDEO_WIDTH && 
-                        py >= 0 && py < SHELL_FAKE_VIDEO_HEIGHT) {
-                        core_state.video_buffer[py * SHELL_FAKE_VIDEO_WIDTH + px] = color;
+                    if (px >= 0 && px < SHELL_CORE_VIDEO_WIDTH && 
+                        py >= 0 && py < SHELL_CORE_VIDEO_HEIGHT) {
+                        core_state.video_buffer[py * SHELL_CORE_VIDEO_WIDTH + px] = color;
                     }
                 }
             }
@@ -383,24 +407,27 @@ void shell_fake_render_text(const char *text, int x, int y, uint32_t color)
 }
 
 /* Check if script is currently running */
-bool shell_fake_is_script_running(void)
+bool shell_core_is_script_running(void)
 {
     if (core_state.process_pid <= 0) return false;
     
 #ifdef __unix__
-    /* Check if process still exists */
-    if (kill(core_state.process_pid, 0) == 0) {
-        return true;
-    }
-    
-    /* Check if process finished */
     int status;
     pid_t result = waitpid(core_state.process_pid, &status, WNOHANG);
     if (result == core_state.process_pid) {
-        core_state.exit_code = WEXITSTATUS(status);
+        if (WIFEXITED(status)) {
+            core_state.exit_code = WEXITSTATUS(status);
+        } else if (WIFSIGNALED(status)) {
+            core_state.exit_code = 128 + WTERMSIG(status);
+        } else {
+            core_state.exit_code = 1;
+        }
         core_state.state = PROCESS_FINISHED;
         core_state.process_pid = -1;
         return false;
+    }
+    if (result == 0) {
+        return true;
     }
 #elif _WIN32
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, core_state.process_pid);
@@ -424,21 +451,21 @@ bool shell_fake_is_script_running(void)
 }
 
 /* Execute the loaded script */
-void shell_fake_execute_script(void)
+void shell_core_execute_script(void)
 {
     if (!core_state.content_loaded || strlen(core_state.config.script_path) == 0) {
-        shell_fake_log(RETRO_LOG_ERROR, "No script loaded\n");
+        shell_core_log(RETRO_LOG_ERROR, "No script loaded\n");
         return;
     }
     
-    if (shell_fake_is_script_running()) {
-        shell_fake_log(RETRO_LOG_INFO, "Script already running\n");
+    if (shell_core_is_script_running()) {
+        shell_core_log(RETRO_LOG_INFO, "Script already running\n");
         return;
     }
     
-    shell_fake_log(RETRO_LOG_INFO, "Executing script: %s\n", core_state.config.script_path);
-    shell_fake_log(RETRO_LOG_INFO, "Using shell: %s\n", core_state.config.shell_path);
-    shell_fake_log(RETRO_LOG_INFO, "Working directory: %s\n", core_state.config.working_dir);
+    shell_core_log(RETRO_LOG_INFO, "Executing script: %s\n", core_state.config.script_path);
+    shell_core_log(RETRO_LOG_INFO, "Using shell: %s\n", core_state.config.shell_path);
+    shell_core_log(RETRO_LOG_INFO, "Working directory: %s\n", core_state.config.working_dir);
     
     core_state.state = PROCESS_RUNNING;
     core_state.start_time = time(NULL);
@@ -448,7 +475,7 @@ void shell_fake_execute_script(void)
     if (pid == 0) {
         /* Child process */
         if (chdir(core_state.config.working_dir) != 0) {
-            shell_fake_log(RETRO_LOG_WARN, "Failed to change directory: %s\n", strerror(errno));
+            shell_core_log(RETRO_LOG_WARN, "Failed to change directory: %s\n", strerror(errno));
         }
         
         execl(core_state.config.shell_path, core_state.config.shell_path, 
@@ -457,25 +484,25 @@ void shell_fake_execute_script(void)
     } else if (pid > 0) {
         /* Parent process */
         core_state.process_pid = pid;
-        shell_fake_log(RETRO_LOG_INFO, "Script started with PID: %d\n", pid);
+        shell_core_log(RETRO_LOG_INFO, "Script started with PID: %d\n", pid);
     } else {
         /* Fork failed */
-        shell_fake_log(RETRO_LOG_ERROR, "Failed to fork process: %s\n", strerror(errno));
+        shell_core_log(RETRO_LOG_ERROR, "Failed to fork process: %s\n", strerror(errno));
         core_state.state = PROCESS_ERROR;
     }
 #elif _WIN32
     /* Windows implementation would use CreateProcess */
-    shell_fake_log(RETRO_LOG_WARN, "Windows execution not fully implemented\n");
+    shell_core_log(RETRO_LOG_WARN, "Windows execution not fully implemented\n");
     core_state.state = PROCESS_ERROR;
 #endif
 }
 
 /* Stop the running script */
-void shell_fake_stop_script(void)
+void shell_core_stop_script(void)
 {
-    if (!shell_fake_is_script_running()) return;
+    if (!shell_core_is_script_running()) return;
     
-    shell_fake_log(RETRO_LOG_INFO, "Stopping script PID: %d\n", core_state.process_pid);
+    shell_core_log(RETRO_LOG_INFO, "Stopping script PID: %d\n", core_state.process_pid);
     
 #ifdef __unix__
     kill(core_state.process_pid, SIGTERM);
@@ -497,24 +524,24 @@ void shell_fake_stop_script(void)
 }
 
 /* Restart the script */
-void shell_fake_restart_script(void)
+void shell_core_restart_script(void)
 {
-    shell_fake_stop_script();
-    shell_fake_execute_script();
+    shell_core_stop_script();
+    shell_core_execute_script();
 }
 
 /* Load script file */
-bool shell_fake_load_script(const char *path)
+bool shell_core_load_script(const char *path)
 {
     if (!path || strlen(path) == 0) {
-        shell_fake_log(RETRO_LOG_ERROR, "Invalid script path\n");
+        shell_core_log(RETRO_LOG_ERROR, "Invalid script path\n");
         return false;
     }
     
     /* Check if file exists and is readable */
     FILE *f = fopen(path, "r");
     if (!f) {
-        shell_fake_log(RETRO_LOG_ERROR, "Cannot open script file: %s\n", path);
+        shell_core_log(RETRO_LOG_ERROR, "Cannot open script file: %s\n", path);
         return false;
     }
     fclose(f);
@@ -524,21 +551,21 @@ bool shell_fake_load_script(const char *path)
     core_state.content_loaded = true;
     
     /* Update configuration based on new script */
-    shell_fake_update_config();
+    shell_core_update_config();
     
-    shell_fake_log(RETRO_LOG_INFO, "Script loaded: %s\n", path);
+    shell_core_log(RETRO_LOG_INFO, "Script loaded: %s\n", path);
     return true;
 }
 
 /* Handle input from controller */
-void shell_fake_handle_input(void)
+void shell_core_handle_input(void)
 {
     if (!input_poll_cb || !input_state_cb) return;
     
     input_poll_cb();
     
     static bool prev_buttons[16] = {false};
-    bool curr_buttons[16];
+    bool curr_buttons[16] = {false};
     
     /* Read current button states */
     curr_buttons[RETRO_DEVICE_ID_JOYPAD_A] = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
@@ -551,12 +578,12 @@ void shell_fake_handle_input(void)
     /* Handle button presses (on release to avoid repeats) */
     if (prev_buttons[RETRO_DEVICE_ID_JOYPAD_A] && !curr_buttons[RETRO_DEVICE_ID_JOYPAD_A]) {
         /* A button: Restart script */
-        shell_fake_restart_script();
+        shell_core_restart_script();
     }
     
     if (prev_buttons[RETRO_DEVICE_ID_JOYPAD_B] && !curr_buttons[RETRO_DEVICE_ID_JOYPAD_B]) {
         /* B button: Stop script */
-        shell_fake_stop_script();
+        shell_core_stop_script();
     }
     
     if (prev_buttons[RETRO_DEVICE_ID_JOYPAD_Y] && !curr_buttons[RETRO_DEVICE_ID_JOYPAD_Y]) {
@@ -567,8 +594,8 @@ void shell_fake_handle_input(void)
     
     if (prev_buttons[RETRO_DEVICE_ID_JOYPAD_START] && !curr_buttons[RETRO_DEVICE_ID_JOYPAD_START]) {
         /* Start button: Execute script if not running */
-        if (!shell_fake_is_script_running() && core_state.content_loaded) {
-            shell_fake_execute_script();
+        if (!shell_core_is_script_running() && core_state.content_loaded) {
+            shell_core_execute_script();
         }
     }
     
@@ -577,12 +604,12 @@ void shell_fake_handle_input(void)
 }
 
 /* Render frame */
-void shell_fake_render_frame(void)
+void shell_core_render_frame(void)
 {
     if (!core_state.video_buffer) return;
     
     /* Clear screen with dark blue */
-    shell_fake_clear_screen(0xFF001122);
+    shell_core_clear_screen(0xFF001122);
     
     /* Render status information */
     char status_text[256];
@@ -596,45 +623,45 @@ void shell_fake_render_frame(void)
         default:              state_str = "UNKNOWN"; break;
     }
     
-    snprintf(status_text, sizeof(status_text), "Shell Fake Core - State: %s", state_str);
-    shell_fake_render_text(status_text, 10, 10, 0xFFFFFFFF);
+    snprintf(status_text, sizeof(status_text), "Shell Core - State: %s", state_str);
+    shell_core_render_text(status_text, 10, 10, 0xFFFFFFFF);
     
     if (core_state.content_loaded) {
         snprintf(status_text, sizeof(status_text), "Script: %s", core_state.config.script_path);
-        shell_fake_render_text(status_text, 10, 30, 0xFFAAAAAA);
+        shell_core_render_text(status_text, 10, 30, 0xFFAAAAAA);
         
         snprintf(status_text, sizeof(status_text), "Shell: %s", core_state.config.shell_path);
-        shell_fake_render_text(status_text, 10, 50, 0xFFAAAAAA);
+        shell_core_render_text(status_text, 10, 50, 0xFFAAAAAA);
     }
     
     if (core_state.state == PROCESS_RUNNING) {
         snprintf(status_text, sizeof(status_text), "PID: %d", core_state.process_pid);
-        shell_fake_render_text(status_text, 10, 70, 0xFF00FF00);
+        shell_core_render_text(status_text, 10, 70, 0xFF00FF00);
         
         time_t elapsed = time(NULL) - core_state.start_time;
         snprintf(status_text, sizeof(status_text), "Running for: %ld seconds", elapsed);
-        shell_fake_render_text(status_text, 10, 90, 0xFF00FF00);
+        shell_core_render_text(status_text, 10, 90, 0xFF00FF00);
     }
     
     if (core_state.state == PROCESS_FINISHED) {
         snprintf(status_text, sizeof(status_text), "Exit code: %d", core_state.exit_code);
-        shell_fake_render_text(status_text, 10, 70, 
+        shell_core_render_text(status_text, 10, 70, 
                               core_state.exit_code == 0 ? 0xFF00FF00 : 0xFFFF0000);
                               
         if (core_state.config.auto_restart) {
-            shell_fake_render_text("Auto-restart enabled", 10, 90, 0xFFFFFF00);
+            shell_core_render_text("Auto-restart enabled", 10, 90, 0xFFFFFF00);
         }
     }
     
     /* Render controls */
-    shell_fake_render_text("Controls:", 10, 130, 0xFFFFFFFF);
-    shell_fake_render_text("A - Restart    B - Stop", 10, 150, 0xFFCCCCCC);
-    shell_fake_render_text("Y - Clear      START - Run", 10, 170, 0xFFCCCCCC);
+    shell_core_render_text("Controls:", 10, 130, 0xFFFFFFFF);
+    shell_core_render_text("A - Restart    B - Stop", 10, 150, 0xFFCCCCCC);
+    shell_core_render_text("Y - Clear      START - Run", 10, 170, 0xFFCCCCCC);
     
     /* Render output if available */
     if (core_state.config.capture_output && core_state.output_length > 0) {
-        shell_fake_render_text("Output:", 10, 210, 0xFFFFFFFF);
-        shell_fake_render_text(core_state.output_buffer, 10, 230, 0xFF00FFFF);
+        shell_core_render_text("Output:", 10, 210, 0xFFFFFFFF);
+        shell_core_render_text(core_state.output_buffer, 10, 230, 0xFF00FFFF);
     }
     
     core_state.frame_count++;
@@ -645,12 +672,12 @@ void shell_fake_render_frame(void)
 void retro_init(void)
 {
     init_core_state();
-    shell_fake_log(RETRO_LOG_INFO, "Shell Fake Core initialized\n");
+    shell_core_log(RETRO_LOG_INFO, "Shell Core initialized\n");
 }
 
 void retro_deinit(void)
 {
-    shell_fake_stop_script();
+    shell_core_stop_script();
     
     if (core_state.video_buffer) {
         free(core_state.video_buffer);
@@ -662,7 +689,7 @@ void retro_deinit(void)
         core_state.audio_buffer = NULL;
     }
     
-    shell_fake_log(RETRO_LOG_INFO, "Shell Fake Core deinitialized\n");
+    shell_core_log(RETRO_LOG_INFO, "Shell Core deinitialized\n");
 }
 
 unsigned retro_api_version(void)
@@ -679,22 +706,22 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 void retro_get_system_info(struct retro_system_info *info)
 {
     memset(info, 0, sizeof(*info));
-    info->library_name     = SHELL_FAKE_CORE_NAME;
-    info->library_version  = SHELL_FAKE_CORE_VERSION;
+    info->library_name     = SHELL_CORE_NAME;
+    info->library_version  = SHELL_CORE_VERSION;
     info->need_fullpath    = true;
     info->valid_extensions = "sh";
 }
 
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
-    info->timing.fps = SHELL_FAKE_VIDEO_FPS;
-    info->timing.sample_rate = SHELL_FAKE_AUDIO_SAMPLE_RATE;
+    info->timing.fps = SHELL_CORE_VIDEO_FPS;
+    info->timing.sample_rate = SHELL_CORE_AUDIO_SAMPLE_RATE;
     
-    info->geometry.base_width   = SHELL_FAKE_VIDEO_WIDTH;
-    info->geometry.base_height  = SHELL_FAKE_VIDEO_HEIGHT;
-    info->geometry.max_width    = SHELL_FAKE_VIDEO_WIDTH;
-    info->geometry.max_height   = SHELL_FAKE_VIDEO_HEIGHT;
-    info->geometry.aspect_ratio = (float)SHELL_FAKE_VIDEO_WIDTH / (float)SHELL_FAKE_VIDEO_HEIGHT;
+    info->geometry.base_width   = SHELL_CORE_VIDEO_WIDTH;
+    info->geometry.base_height  = SHELL_CORE_VIDEO_HEIGHT;
+    info->geometry.max_width    = SHELL_CORE_VIDEO_WIDTH;
+    info->geometry.max_height   = SHELL_CORE_VIDEO_HEIGHT;
+    info->geometry.aspect_ratio = (float)SHELL_CORE_VIDEO_WIDTH / (float)SHELL_CORE_VIDEO_HEIGHT;
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -709,7 +736,7 @@ void retro_set_environment(retro_environment_t cb)
     }
     
     /* Core options */
-    cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &shell_fake_core_options);
+    cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2, &shell_core_options_v2);
     
     /* Input descriptors */
     cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, (void*)input_descriptors);
@@ -749,7 +776,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 void retro_reset(void)
 {
-    shell_fake_restart_script();
+    shell_core_restart_script();
 }
 
 void retro_run(void)
@@ -758,64 +785,75 @@ void retro_run(void)
     
     /* Check for core option updates */
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-        shell_fake_update_config();
+        shell_core_update_config();
     }
     
     /* Handle input */
-    shell_fake_handle_input();
+    shell_core_handle_input();
     
     /* Check script status */
     if (core_state.state == PROCESS_RUNNING) {
-        if (!shell_fake_is_script_running()) {
+        if (core_state.config.timeout_seconds > 0) {
+            time_t elapsed = time(NULL) - core_state.start_time;
+            if (elapsed >= core_state.config.timeout_seconds) {
+                shell_core_log(RETRO_LOG_WARN, "Script timed out after %d seconds\n",
+                               core_state.config.timeout_seconds);
+                shell_core_stop_script();
+                core_state.state = PROCESS_ERROR;
+                core_state.exit_code = -1;
+            }
+        }
+
+        if (!shell_core_is_script_running()) {
             if (core_state.config.auto_restart) {
-                shell_fake_execute_script();
+                shell_core_execute_script();
             }
         }
     }
     
     /* Render frame */
-    shell_fake_render_frame();
+    shell_core_render_frame();
     
     /* Submit video */
     if (video_cb && core_state.video_buffer) {
-        video_cb(core_state.video_buffer, SHELL_FAKE_VIDEO_WIDTH, SHELL_FAKE_VIDEO_HEIGHT, 
-                SHELL_FAKE_VIDEO_WIDTH * sizeof(uint32_t));
+        video_cb(core_state.video_buffer, SHELL_CORE_VIDEO_WIDTH, SHELL_CORE_VIDEO_HEIGHT, 
+                SHELL_CORE_VIDEO_WIDTH * sizeof(uint32_t));
     }
     
     /* Submit audio (silence for now) */
     if (audio_batch_cb && core_state.audio_buffer) {
-        memset(core_state.audio_buffer, 0, SHELL_FAKE_AUDIO_SAMPLE_RATE / SHELL_FAKE_VIDEO_FPS * 2 * sizeof(int16_t));
-        audio_batch_cb(core_state.audio_buffer, SHELL_FAKE_AUDIO_SAMPLE_RATE / SHELL_FAKE_VIDEO_FPS);
+        memset(core_state.audio_buffer, 0, SHELL_CORE_AUDIO_SAMPLE_RATE / SHELL_CORE_VIDEO_FPS * 2 * sizeof(int16_t));
+        audio_batch_cb(core_state.audio_buffer, SHELL_CORE_AUDIO_SAMPLE_RATE / SHELL_CORE_VIDEO_FPS);
     }
 }
 
 bool retro_load_game(const struct retro_game_info *info)
 {
     if (!info || !info->path) {
-        shell_fake_log(RETRO_LOG_ERROR, "No game info provided\n");
+        shell_core_log(RETRO_LOG_ERROR, "No game info provided\n");
         return false;
     }
     
-    strcpy(core_state.rom_path, info->path);
+    safe_copy(core_state.rom_path, sizeof(core_state.rom_path), info->path);
     
-    if (!shell_fake_load_script(info->path)) {
+    if (!shell_core_load_script(info->path)) {
         return false;
     }
     
-    shell_fake_log(RETRO_LOG_INFO, "Game loaded: %s\n", info->path);
+    shell_core_log(RETRO_LOG_INFO, "Game loaded: %s\n", info->path);
     
     /* Auto-start script if configured */
-    shell_fake_execute_script();
+    shell_core_execute_script();
     
     return true;
 }
 
 void retro_unload_game(void)
 {
-    shell_fake_stop_script();
+    shell_core_stop_script();
     core_state.content_loaded = false;
     memset(core_state.config.script_path, 0, sizeof(core_state.config.script_path));
-    shell_fake_log(RETRO_LOG_INFO, "Game unloaded\n");
+    shell_core_log(RETRO_LOG_INFO, "Game unloaded\n");
 }
 
 unsigned retro_get_region(void)

@@ -163,18 +163,18 @@ setup_container_environment() {
     echo "📦 Setting up container-optimized shell environment..."
     
     # Create minimal .profile
-    cat > /etc/profile.d/shell-fake-core.sh << 'EOF'
-# Shell Fake Core environment setup
+    cat > /etc/profile.d/shell-core.sh << 'EOF'
+# Shell Core environment setup
 export PATH="/usr/local/bin:$PATH"
 
-# Set default shell for Shell Fake Core
-if [ -z "$SHELL_FAKE_DEFAULT" ]; then
+# Set default shell for Shell Core
+if [ -z "$SHELL_CORE_DEFAULT" ]; then
     if command -v bash >/dev/null 2>&1; then
-        export SHELL_FAKE_DEFAULT="bash"
+        export SHELL_CORE_DEFAULT="bash"
     elif command -v ash >/dev/null 2>&1; then
-        export SHELL_FAKE_DEFAULT="ash"
+        export SHELL_CORE_DEFAULT="ash"
     else
-        export SHELL_FAKE_DEFAULT="sh"
+        export SHELL_CORE_DEFAULT="sh"
     fi
 fi
 
@@ -208,14 +208,14 @@ test_minimal_setup() {
     done
     
     echo ""
-    echo "🎯 Shell Fake Core compatibility:"
+echo "🎯 Shell Core compatibility:"
     
     if command -v bash >/dev/null 2>&1; then
-        echo "   ✅ bash - Recommended for Shell Fake Core"
+        echo "   ✅ bash - Recommended for Shell Core"
     elif command -v ash >/dev/null 2>&1; then
-        echo "   ✅ ash - Good for Shell Fake Core (BusyBox)"
+        echo "   ✅ ash - Good for Shell Core (BusyBox)"
     elif command -v sh >/dev/null 2>&1; then
-        echo "   ✅ sh - Basic Shell Fake Core compatibility"
+        echo "   ✅ sh - Basic Shell Core compatibility"
     else
         echo "   ❌ No compatible shell found"
     fi
@@ -257,7 +257,7 @@ echo ""
 echo "📝 Usage instructions:"
 echo "   - Run 'shell-chooser' to select shell interactively"
 echo "   - Run scripts directly: './script.sh'"
-echo "   - Use in Shell Fake Core with any configured shell"
+echo "   - Use in Shell Core with any configured shell"
 echo ""
 echo "🚀 Minimal shell setup completed!"
 

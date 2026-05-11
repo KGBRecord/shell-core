@@ -133,7 +133,7 @@ if command -v bash >/dev/null 2>&1; then
     echo "   Version: $(bash --version | head -n1)"
     echo "   Location: $(which bash)"
     echo ""
-    echo "🎯 You can now use bash in Shell Fake Core!"
+    echo "🎯 You can now use bash in Shell Core!"
     echo "   Set shell option to 'bash' in RetroArch core options."
 else
     echo "❌ Installation failed!"

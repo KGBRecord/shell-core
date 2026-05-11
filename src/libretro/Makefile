@@ -30,7 +30,7 @@ else ifneq ($(findstring MINGW,$(shell uname -a)),)
 endif
 
 CORE_DIR    += .
-TARGET_NAME := shell_fake
+TARGET_NAME := shell_core
 LIBM        = -lm
 
 ifeq ($(ARCHFLAGS),)
@@ -135,7 +135,7 @@ endif
 .PHONY: all clean
 
 # Source files
-SOURCES = shell_fake_libretro.c
+SOURCES = shell_core_libretro.c
 
 # Object files
 OBJECTS = $(SOURCES:.c=.o)

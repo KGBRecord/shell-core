@@ -23,7 +23,7 @@ your programs, too.
 
 ---
 
-Shell Fake Core
+Shell Core
 Copyright (C) 2024 KGBRecord
 
 This program is free software: you can redistribute it and/or modify
@@ -57,5 +57,5 @@ SECURITY NOTICE:
 This software executes shell scripts provided by users. Shell scripts
 have full access to the system they run on. Users should only execute
 scripts from trusted sources and should review script contents before
-execution. The authors and contributors of Shell Fake Core are not
+execution. The authors and contributors of Shell Core are not
 responsible for any damage caused by malicious scripts.

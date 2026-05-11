@@ -134,7 +134,7 @@ if command -v zsh >/dev/null 2>&1; then
     echo "   Version: $(zsh --version)"
     echo "   Location: $(which zsh)"
     echo ""
-    echo "🎯 You can now use zsh in Shell Fake Core!"
+    echo "🎯 You can now use zsh in Shell Core!"
     echo "   Set shell option to 'zsh' in RetroArch core options."
     echo ""
     echo "💡 Optional: Install Oh My Zsh for enhanced experience:"

@@ -1,12 +1,12 @@
-# Shell Fake Core
+# Shell Core
 
 ![Shell Script Execution](https://img.shields.io/badge/Shell-Script%20Execution-green?style=for-the-badge&logo=gnu-bash)
 
 **A LibRetro core that executes shell scripts (.sh files) through a fake gaming interface for various user purposes.**
 
-## 🎮 What is Shell Fake Core?
+## 🎮 What is Shell Core?
 
-Shell Fake Core is a LibRetro core that provides a gaming-like interface for executing shell scripts. It creates a fake menu system that allows users to run shell scripts for various purposes - system administration, automation, utilities, or even simple shell-based games. Each `.sh` file is treated as a "ROM" that can be loaded and executed through RetroArch.
+Shell Core is a LibRetro core that provides a gaming-like interface for executing shell scripts. It creates a fake menu system that allows users to run shell scripts for various purposes - system administration, automation, utilities, or even simple shell-based games. Each `.sh` file is treated as a "ROM" that can be loaded and executed through RetroArch.
 
 ### Key Features:
 - **Shell Script Execution**: Run any `.sh` script through a gaming interface
@@ -28,8 +28,8 @@ Shell Fake Core is a LibRetro core that provides a gaming-like interface for exe
 
 ```bash
 # Clone the repository
-git clone https://github.com/KGBRecord/shell-fake-core.git
-cd shell-fake-core
+git clone https://github.com/KGBRecord/shell-core.git
+cd shell-core
 
 # Setup Docker environment (recommended)
 make setup
@@ -75,21 +75,21 @@ make clean
 
 ### Usage
 
-1. Copy `shell_fake_libretro.so` to your RetroArch cores directory
+1. Copy `shell_core_libretro.so` to your RetroArch cores directory
 2. Create or copy `.sh` script files to a directory (your "ROM" directory)
 3. In RetroArch:
-   - Load Core → Shell Fake Core
+   - Load Core → Shell Core
    - Load Content → Select your `.sh` file
    - Run your shell script through the interface!
 
 ## 📁 Project Structure
 
 ```
-shell-fake-core/
+shell-core/
 ├── src/
 │   └── libretro/
-│       ├── shell_fake_libretro.c
-│       ├── shell_fake_libretro.h
+│       ├── shell_core_libretro.c
+│       ├── shell_core_libretro.h
 │       ├── Makefile
 │       └── deps/
 ├── scripts/
@@ -98,7 +98,7 @@ shell-fake-core/
 │   │   ├── system_info.sh
 │   │   ├── interactive_menu.sh
 │   │   ├── simple_game.sh
-│   │   └── setup_wizard.sh (Setup guidance ROM)
+│   │   └── system_monitor.sh
 │   ├── installers/
 │   │   ├── install_shells.sh (master installer)
 │   │   ├── install_bash.sh
@@ -112,7 +112,7 @@ shell-fake-core/
 │   │   └── README.md
 │   └── setup_rom_collection.sh (Automatic ROM setup)
 ├── package/
-│   ├── shell_fake_libretro.info
+│   ├── shell_core_libretro.info
 │   └── retroarch.cfg
 └── docker/
     ├── Dockerfile
@@ -121,7 +121,7 @@ shell-fake-core/
 
 ## 🐚 Shell Installation
 
-Shell Fake Core includes installer scripts for various shells:
+Shell Core includes installer scripts for various shells:
 
 ### Quick Shell Setup
 ```bash
@@ -140,7 +140,7 @@ cd scripts/installers
 
 ### 🎮 Use Installer Scripts as ROMs
 
-The installer scripts themselves can be loaded as "ROMs" in Shell Fake Core:
+The installer scripts themselves can be loaded as "ROMs" in Shell Core:
 
 ```bash
 # Copy installers to your RetroArch ROMs folder
@@ -150,7 +150,7 @@ chmod +x ~/RetroArch/ROMs/Shell-Scripts/Installers/*.sh
 
 # Then in RetroArch:
 # 1. Load Content → Shell-Scripts/Installers/install_shells.sh
-# 2. Choose Shell Fake Core
+# 2. Choose Shell Core
 # 3. Install shells through the gaming interface!
 ```
 
@@ -197,7 +197,7 @@ echo "Organization complete!"
 
 ## 🎮 Setting Up Your Shell ROM Collection
 
-Shell Fake Core treats every `.sh` file as a "ROM" that can be loaded in RetroArch. Here's how to set up your collection:
+Shell Core treats every `.sh` file as a "ROM" that can be loaded in RetroArch. Here's how to set up your collection:
 
 ### Quick ROM Setup
 
@@ -242,7 +242,7 @@ Shell-Scripts/
 
 ### Using ROMs in RetroArch
 
-1. **Load Shell Fake Core**
+1. **Load Shell Core**
 2. **Load Content** → Browse to `Shell-Scripts/`
 3. **Select ROM** (any `.sh` file)
 4. **Configure Core Options:**
@@ -274,21 +274,21 @@ Copy to ROM folder and load in RetroArch!
 
 The core supports these RetroArch core options:
 
-- **shell_fake_shell**: Choose shell interpreter (bash, zsh, sh)
-- **shell_fake_timeout**: Script execution timeout (seconds)
-- **shell_fake_working_dir**: Working directory for scripts
-- **shell_fake_capture_output**: Enable/disable output capture
-- **shell_fake_interactive**: Allow interactive input
+- **shell_core_shell**: Choose shell interpreter (bash, zsh, sh)
+- **shell_core_timeout**: Script execution timeout (seconds)
+- **shell_core_working_dir**: Working directory for scripts
+- **shell_core_capture_output**: Enable/disable output capture
+- **shell_core_interactive**: Allow interactive input
 
 ## 🔧 Core Options
 
 | Option | Description | Values |
 |--------|-------------|---------|
-| `shell_fake_shell` | Shell interpreter to use | `bash`, `zsh`, `sh`, `fish` |
-| `shell_fake_timeout` | Script timeout in seconds | `0`, `5`, `10`, `30`, `60`, `300` |
-| `shell_fake_working_dir` | Working directory | `script_dir`, `home`, `tmp` |
-| `shell_fake_capture_output` | Capture script output | `enabled`, `disabled` |
-| `shell_fake_interactive` | Allow interactive scripts | `enabled`, `disabled` |
+| `shell_core_shell` | Shell interpreter to use | `bash`, `zsh`, `sh`, `fish` |
+| `shell_core_timeout` | Script timeout in seconds | `0`, `5`, `10`, `30`, `60`, `300` |
+| `shell_core_working_dir` | Working directory | `script_dir`, `home`, `tmp` |
+| `shell_core_capture_output` | Capture script output | `enabled`, `disabled` |
+| `shell_core_interactive` | Allow interactive scripts | `enabled`, `disabled` |
 
 ## 🐳 Docker Support
 
@@ -336,10 +336,10 @@ read -p "Press Enter to exit..."
 Enable debug logging in RetroArch to see core execution details:
 
 ```
-[Shell Fake Core] Loading script: /path/to/script.sh
-[Shell Fake Core] Using shell: /bin/bash
-[Shell Fake Core] Script output: Hello World!
-[Shell Fake Core] Script finished with exit code: 0
+[Shell Core] Loading script: /path/to/script.sh
+[Shell Core] Using shell: /bin/bash
+[Shell Core] Script output: Hello World!
+[Shell Core] Script finished with exit code: 0
 ```
 
 ## 🤝 Contributing

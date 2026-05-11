@@ -1,6 +1,6 @@
-# Shell Fake Core - Example Scripts
+# Shell Core - Example Scripts
 
-This directory contains example shell scripts that demonstrate the capabilities of Shell Fake Core. Each script serves a different purpose and showcases how shell scripts can be used through the LibRetro interface.
+This directory contains example shell scripts that demonstrate the capabilities of Shell Core. Each script serves a different purpose and showcases how shell scripts can be used through the LibRetro interface.
 
 ## 📁 Available Scripts
 
@@ -22,7 +22,7 @@ This directory contains example shell scripts that demonstrate the capabilities 
 ## 🚀 How to Use
 
 1. **Through RetroArch:**
-   - Load the Shell Fake Core
+   - Load the Shell Core
    - Browse to this scripts directory
    - Select any `.sh` file as a "ROM"
    - The script will execute in the fake gaming interface
@@ -71,7 +71,7 @@ echo "║                                YOUR SCRIPT TITLE                      
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 # Your script logic here
-echo "Hello from Shell Fake Core!"
+echo "Hello from Shell Core!"
 
 # Always end with a pause for user interaction
 read -p "Press Enter to exit..."
@@ -162,4 +162,4 @@ Feel free to contribute your own example scripts! Make sure they:
 
 ---
 
-**Have fun creating and running shell scripts through Shell Fake Core!** 🚀
+**Have fun creating and running shell scripts through Shell Core!** 🚀

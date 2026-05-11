@@ -1,6 +1,6 @@
 #!/bin/sh
 # Shell Installer Master Script
-# Provides a menu to install various shells for Shell Fake Core
+# Provides a menu to install various shells for Shell Core
 
 echo "========================================"
 echo "    SHELL INSTALLER COLLECTION"
@@ -18,7 +18,8 @@ echo ""
 echo "=== Alternative Methods ==="
 echo "6) Source   - Compile from source code"
 echo "7) Static   - Static binaries for minimal systems"
-echo "8) Check    - Check installed shells"
+echo "8) Scratch  - From-scratch bootstrap (no package manager)"
+echo "9) Check    - Check installed shells"
 echo "0) Exit"
 echo ""
 
@@ -105,7 +106,7 @@ echo ""
 
 # Main menu loop
 while true; do
-    printf "🐚 Select an option (1-8, 0 to exit): "
+    printf "🐚 Select an option (1-9, 0 to exit): "
     read -r choice
     echo ""
     
@@ -161,6 +162,11 @@ while true; do
             echo ""
             ;;
         8)
+            echo "Launching from-scratch installer..."
+            run_installer "install_from_scratch.sh"
+            echo ""
+            ;;
+        9)
             check_all_shells
             ;;
         0)
@@ -168,7 +174,7 @@ while true; do
             exit 0
             ;;
         *)
-            echo "❌ Invalid option. Please select 1-8 or 0 to exit."
+            echo "❌ Invalid option. Please select 1-9 or 0 to exit."
             echo ""
             ;;
     esac

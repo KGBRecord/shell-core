@@ -12,7 +12,7 @@ rms/
 /*.iml
 
 # Build artifacts  
-src/libretro/shell_fake
+src/libretro/shell_core
 src/libretro/*.o
 src/libretro/*.so
 src/libretro/*.dylib

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Shell Fake Core Build Script
+# Shell Core Build Script
 # Builds the LibRetro core for shell script execution
 
 set -e
@@ -33,7 +33,7 @@ BUILD_TYPE="${1:-native}"
 CORES_DIR="build/cores"
 PACKAGE_DIR="build/package"
 
-print_status "Shell Fake Core Build System"
+print_status "Shell Core Build System"
 print_status "============================="
 print_status "Build type: $BUILD_TYPE"
 
@@ -50,15 +50,15 @@ case "$BUILD_TYPE" in
         cd ../..
         
         # Copy built core
-        if [ -f "src/libretro/shell_fake_libretro.so" ]; then
-            cp src/libretro/shell_fake_libretro.so "$CORES_DIR/"
-            print_success "Core built successfully: $CORES_DIR/shell_fake_libretro.so"
-        elif [ -f "src/libretro/shell_fake_libretro.dll" ]; then
-            cp src/libretro/shell_fake_libretro.dll "$CORES_DIR/"
-            print_success "Core built successfully: $CORES_DIR/shell_fake_libretro.dll"
-        elif [ -f "src/libretro/shell_fake_libretro.dylib" ]; then
-            cp src/libretro/shell_fake_libretro.dylib "$CORES_DIR/"
-            print_success "Core built successfully: $CORES_DIR/shell_fake_libretro.dylib"
+        if [ -f "src/libretro/shell_core_libretro.so" ]; then
+            cp src/libretro/shell_core_libretro.so "$CORES_DIR/"
+            print_success "Core built successfully: $CORES_DIR/shell_core_libretro.so"
+        elif [ -f "src/libretro/shell_core_libretro.dll" ]; then
+            cp src/libretro/shell_core_libretro.dll "$CORES_DIR/"
+            print_success "Core built successfully: $CORES_DIR/shell_core_libretro.dll"
+        elif [ -f "src/libretro/shell_core_libretro.dylib" ]; then
+            cp src/libretro/shell_core_libretro.dylib "$CORES_DIR/"
+            print_success "Core built successfully: $CORES_DIR/shell_core_libretro.dylib"
         else
             print_error "Core build failed - no output file found"
             exit 1
@@ -68,10 +68,10 @@ case "$BUILD_TYPE" in
     "docker")
         print_status "Building with Docker..."
         docker-compose build
-        docker-compose run --rm shell-fake-builder make -C src/libretro
+        docker-compose run --rm shell-core-builder make -C src/libretro
         
         # Copy from container
-        docker-compose run --rm shell-fake-builder cp src/libretro/shell_fake_libretro.so /workspace/build/cores/
+        docker-compose run --rm shell-core-builder cp src/libretro/shell_core_libretro.so /workspace/build/cores/
         print_success "Docker build completed"
         ;;
         
@@ -92,7 +92,7 @@ esac
 
 # Copy additional files
 print_status "Copying package files..."
-cp package/shell_fake_libretro.info "$PACKAGE_DIR/"
+cp package/shell_core_libretro.info "$PACKAGE_DIR/"
 cp package/retroarch.cfg "$PACKAGE_DIR/"
 
 # Copy example scripts

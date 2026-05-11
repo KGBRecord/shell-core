@@ -139,7 +139,7 @@ if command -v fish >/dev/null 2>&1; then
     echo "   Version: $(fish --version)"
     echo "   Location: $(which fish)"
     echo ""
-    echo "🎯 You can now use fish in Shell Fake Core!"
+    echo "🎯 You can now use fish in Shell Core!"
     echo "   Set shell option to 'fish' in RetroArch core options."
     echo ""
     echo "🐟 Fish features:"

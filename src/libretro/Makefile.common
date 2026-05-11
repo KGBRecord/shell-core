@@ -1,4 +1,4 @@
-SOURCES_C += shell_fake_libretro.c
+SOURCES_C += shell_core_libretro.c
 
 ifneq ($(platform), emscripten)
 SOURCES_C += deps/libretro-common/file/file_path.c \

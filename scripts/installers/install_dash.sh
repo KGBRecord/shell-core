@@ -138,7 +138,7 @@ if command -v dash >/dev/null 2>&1; then
     echo "✅ Dash shell installed successfully!"
     echo "   Location: $(which dash)"
     echo ""
-    echo "🎯 You can now use dash in Shell Fake Core!"
+    echo "🎯 You can now use dash in Shell Core!"
     echo "   Set shell option to 'dash' in RetroArch core options."
     echo ""
     echo "⚡ Dash features:"
