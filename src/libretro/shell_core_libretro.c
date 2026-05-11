@@ -383,26 +383,45 @@ void shell_core_clear_screen(uint32_t color)
 void shell_core_render_text(const char *text, int x, int y, uint32_t color)
 {
     if (!core_state.video_buffer || !text) return;
-    
-    size_t len = strlen(text);
-    for (size_t i = 0; i < len; i++) {
-        unsigned char c = (unsigned char)text[i];
-        if (c >= 128) c = '?'; /* Handle non-ASCII */
-        
-        /* Render 8x8 character */
-        for (int row = 0; row < 8; row++) {
-            uint8_t line = font_8x8[c][row];
-            for (int col = 0; col < 8; col++) {
-                if (line & (0x80 >> col)) {
-                    int px = x + (int)(i * 8) + col;
-                    int py = y + row;
-                    if (px >= 0 && px < SHELL_CORE_VIDEO_WIDTH && 
-                        py >= 0 && py < SHELL_CORE_VIDEO_HEIGHT) {
-                        core_state.video_buffer[py * SHELL_CORE_VIDEO_WIDTH + px] = color;
+
+    /* Support line breaks and simple wrapping to avoid drawing off-screen text. */
+    int cursor_x = x;
+    int cursor_y = y;
+    const char *p = text;
+
+    while (*p && cursor_y < SHELL_CORE_VIDEO_HEIGHT) {
+        unsigned char c = (unsigned char)*p++;
+
+        if (c == '\n') {
+            cursor_x = x;
+            cursor_y += 8;
+            continue;
+        }
+
+        if (c >= 128) c = '?';
+
+        if (cursor_x + 8 > SHELL_CORE_VIDEO_WIDTH) {
+            cursor_x = x;
+            cursor_y += 8;
+            if (cursor_y >= SHELL_CORE_VIDEO_HEIGHT) break;
+        }
+
+        if (cursor_x >= 0 && cursor_y >= -7) {
+            for (int row = 0; row < 8; row++) {
+                uint8_t line = font_8x8[c][row];
+                int py = cursor_y + row;
+                if (line == 0 || py < 0 || py >= SHELL_CORE_VIDEO_HEIGHT) continue;
+
+                uint32_t *pixel = &core_state.video_buffer[py * SHELL_CORE_VIDEO_WIDTH + cursor_x];
+                for (int col = 0; col < 8; col++) {
+                    if ((line & (0x80 >> col)) && (cursor_x + col) < SHELL_CORE_VIDEO_WIDTH) {
+                        pixel[col] = color;
                     }
                 }
             }
         }
+
+        cursor_x += 8;
     }
 }
 
@@ -588,7 +607,7 @@ void shell_core_handle_input(void)
     
     if (prev_buttons[RETRO_DEVICE_ID_JOYPAD_Y] && !curr_buttons[RETRO_DEVICE_ID_JOYPAD_Y]) {
         /* Y button: Clear output */
-        memset(core_state.output_buffer, 0, sizeof(core_state.output_buffer));
+        core_state.output_buffer[0] = '\0';
         core_state.output_length = 0;
     }
     
@@ -660,8 +679,20 @@ void shell_core_render_frame(void)
     
     /* Render output if available */
     if (core_state.config.capture_output && core_state.output_length > 0) {
+        const size_t output_render_limit = 1024;
+        const char *output_to_render = core_state.output_buffer;
+        size_t output_len = core_state.output_length;
+
+        if (output_len > output_render_limit) {
+            output_to_render = core_state.output_buffer + (output_len - output_render_limit);
+            while (*output_to_render && *output_to_render != '\n')
+                output_to_render++;
+            if (*output_to_render == '\n')
+                output_to_render++;
+        }
+
         shell_core_render_text("Output:", 10, 210, 0xFFFFFFFF);
-        shell_core_render_text(core_state.output_buffer, 10, 230, 0xFF00FFFF);
+        shell_core_render_text(output_to_render, 10, 230, 0xFF00FFFF);
     }
     
     core_state.frame_count++;
@@ -782,10 +813,17 @@ void retro_reset(void)
 void retro_run(void)
 {
     bool updated = false;
+    bool should_redraw = false;
+    static process_state_t last_state = PROCESS_ERROR;
+    static int last_exit_code = -9999;
+    static bool last_content_loaded = false;
+    static size_t last_output_length = 0;
+    static time_t last_elapsed_seconds = -1;
     
     /* Check for core option updates */
     if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
         shell_core_update_config();
+        should_redraw = true;
     }
     
     /* Handle input */
@@ -801,18 +839,45 @@ void retro_run(void)
                 shell_core_stop_script();
                 core_state.state = PROCESS_ERROR;
                 core_state.exit_code = -1;
+                should_redraw = true;
             }
         }
 
         if (!shell_core_is_script_running()) {
             if (core_state.config.auto_restart) {
                 shell_core_execute_script();
+                should_redraw = true;
             }
         }
     }
-    
-    /* Render frame */
-    shell_core_render_frame();
+
+    if (core_state.state != last_state ||
+        core_state.exit_code != last_exit_code ||
+        core_state.content_loaded != last_content_loaded ||
+        core_state.output_length != last_output_length) {
+        should_redraw = true;
+    }
+
+    if (core_state.state == PROCESS_RUNNING) {
+        time_t elapsed_seconds = time(NULL) - core_state.start_time;
+        if (elapsed_seconds != last_elapsed_seconds)
+            should_redraw = true;
+        last_elapsed_seconds = elapsed_seconds;
+    } else {
+        last_elapsed_seconds = -1;
+    }
+
+    /* Periodic refresh even without state changes (UI heartbeat). */
+    if ((core_state.frame_count % 4U) == 0U)
+        should_redraw = true;
+
+    if (should_redraw)
+        shell_core_render_frame();
+
+    last_state = core_state.state;
+    last_exit_code = core_state.exit_code;
+    last_content_loaded = core_state.content_loaded;
+    last_output_length = core_state.output_length;
     
     /* Submit video */
     if (video_cb && core_state.video_buffer) {
